@@ -19,17 +19,30 @@ export const useBudgets = () => {
   return context;
 };
 
+const INITIAL_DEMO_BUDGETS = [
+  { id: 'demo-b-1', name: 'Shopping Budget', type: 'category', category: 'shopping', amount: 20000, period: 'monthly', rolloverEnabled: false },
+  { id: 'demo-b-2', name: 'Food & Dining Budget', type: 'category', category: 'food', amount: 15000, period: 'monthly', rolloverEnabled: true },
+  { id: 'demo-b-3', name: 'Transport Ceiling', type: 'category', category: 'transport', amount: 10000, period: 'monthly', rolloverEnabled: false },
+];
+
 export const BudgetProvider = ({ children }) => {
   const { currentUser } = useAuth();
   const [budgets, setBudgets] = useState([]);
   const [loadingBudgets, setLoadingBudgets] = useState(true);
   const [error, setError] = useState(null);
 
-  // Real-time listener subscription
+  // Real-time listener subscription or Demo User Mode
   useEffect(() => {
     if (!currentUser) {
       setBudgets([]);
       setLoadingBudgets(false);
+      return;
+    }
+
+    if (currentUser.isDemo) {
+      setBudgets(INITIAL_DEMO_BUDGETS);
+      setLoadingBudgets(false);
+      setError(null);
       return;
     }
 
@@ -55,6 +68,13 @@ export const BudgetProvider = ({ children }) => {
   const createBudget = async (budgetData) => {
     if (!currentUser) throw new Error('Unauthenticated user.');
     setError(null);
+
+    if (currentUser.isDemo) {
+      const created = { id: `demo_b_${Date.now()}`, ...budgetData };
+      setBudgets((prev) => [created, ...prev]);
+      return created;
+    }
+
     try {
       const created = await createBudgetInFirestore(currentUser.uid, budgetData);
       setBudgets((prev) => [created, ...prev]);
@@ -69,6 +89,14 @@ export const BudgetProvider = ({ children }) => {
   const updateBudget = async (id, updatedFields) => {
     if (!currentUser) throw new Error('Unauthenticated user.');
     setError(null);
+
+    if (currentUser.isDemo) {
+      setBudgets((prev) =>
+        prev.map((b) => (b.id === id ? { ...b, ...updatedFields } : b))
+      );
+      return;
+    }
+
     try {
       await updateBudgetInFirestore(currentUser.uid, id, updatedFields);
       setBudgets((prev) =>
@@ -84,6 +112,12 @@ export const BudgetProvider = ({ children }) => {
   const deleteBudget = async (id) => {
     if (!currentUser) throw new Error('Unauthenticated user.');
     setError(null);
+
+    if (currentUser.isDemo) {
+      setBudgets((prev) => prev.filter((b) => b.id !== id));
+      return;
+    }
+
     try {
       await deleteBudgetInFirestore(currentUser.uid, id);
       setBudgets((prev) => prev.filter((b) => b.id !== id));

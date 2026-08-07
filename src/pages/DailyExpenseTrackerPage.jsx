@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useExpenses } from '../context/ExpenseContext';
 import { useBudgets } from '../context/BudgetContext';
 import { useCurrency } from '../context/CurrencyContext';
+import { useTransactions } from '../context/TransactionContext';
 import { getDailyExpensesByDate, saveDailyExpensesService } from '../services/firestore/dailyExpenseService';
 import { ExpenseCalendar } from '../components/analytics/ExpenseCalendar';
 import { SmartInsightsWidget } from '../components/analytics/SmartInsightsWidget';
@@ -13,6 +14,7 @@ import { ExpenseHistoryTable } from '../components/analytics/ExpenseHistoryTable
 export const DailyExpenseTrackerPage = () => {
   const { currentUser } = useAuth();
   const { categories, categoryBreakdown, stats, transactions, showToast } = useExpenses();
+  const { saveDemoDailyExpenseDoc } = useTransactions();
   const { budgets } = useBudgets();
   const { formatMoney, symbol: currencySymbol } = useCurrency();
 
@@ -258,7 +260,13 @@ export const DailyExpenseTrackerPage = () => {
 
     setIsSaving(true);
     try {
-      await saveDailyExpensesService(currentUser.uid, selectedDate, formState, grandTotal);
+      if (currentUser?.isDemo) {
+        if (saveDemoDailyExpenseDoc) {
+          saveDemoDailyExpenseDoc(selectedDate, formState, grandTotal);
+        }
+      } else {
+        await saveDailyExpensesService(currentUser.uid, selectedDate, formState, grandTotal);
+      }
       setInitialFormState(JSON.parse(JSON.stringify(formState)));
 
       if (showToast) {
@@ -266,7 +274,7 @@ export const DailyExpenseTrackerPage = () => {
       }
     } catch (err) {
       console.error('Save Daily Expenses Error:', err);
-      setValidationError('Failed to save expenses to Firestore. Please try again.');
+      setValidationError('Failed to save expenses. Please try again.');
     } finally {
       setIsSaving(false);
     }

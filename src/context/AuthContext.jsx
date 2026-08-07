@@ -234,6 +234,35 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Instant Demo Account Login
+  const loginAsDemoUser = async () => {
+    setAuthError(null);
+    const demoUser = {
+      uid: 'demo-user-12345',
+      email: 'demo@expensetracker.app',
+      displayName: 'Demo Explorer',
+      photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+      emailVerified: true,
+      isDemo: true,
+      providerData: [{ providerId: 'demo' }]
+    };
+
+    const demoProfile = {
+      uid: 'demo-user-12345',
+      fullName: 'Demo Explorer',
+      displayName: 'Demo Explorer',
+      email: 'demo@expensetracker.app',
+      photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+      createdAt: new Date().toISOString(),
+      isDemo: true,
+    };
+
+    setCurrentUser(demoUser);
+    setUserProfile(demoProfile);
+    setLoading(false);
+    return demoUser;
+  };
+
   // Forgot Password
   const resetPassword = async (email) => {
     setAuthError(null);
@@ -285,6 +314,7 @@ export const AuthProvider = ({ children }) => {
         registerWithEmail,
         loginWithEmail,
         loginWithGoogle,
+        loginAsDemoUser,
         resetPassword,
         logoutUser,
         resendVerification,

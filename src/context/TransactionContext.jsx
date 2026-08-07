@@ -25,6 +25,25 @@ export const useTransactions = () => {
   return context;
 };
 
+const INITIAL_DEMO_TRANSACTIONS = [
+  { id: 'demo-tx-1', title: 'Monthly Salary', amount: 150000, type: 'income', category: 'salary', date: '2026-08-01', status: 'completed' },
+  { id: 'demo-tx-2', title: 'Shopping', amount: 15000, type: 'expense', category: 'shopping', date: '2026-08-03', status: 'completed' },
+  { id: 'demo-tx-3', title: 'Transport', amount: 6000, type: 'expense', category: 'transport', date: '2026-08-05', status: 'completed' },
+  { id: 'demo-tx-4', title: 'Subscriptions', amount: 2500, type: 'expense', category: 'subscriptions', date: '2026-08-06', status: 'completed' },
+];
+
+const INITIAL_DEMO_DAILY_DOCS = [
+  {
+    id: '2026-08-08',
+    date: '2026-08-08',
+    categoriesData: {
+      food: { categoryName: 'Food & Dining', items: [{ id: 'd-1', description: 'Lunch & Coffee', amount: 450 }] },
+      shopping: { categoryName: 'Shopping', items: [{ id: 'd-2', description: 'T-Shirt', amount: 2000 }, { id: 'd-3', description: 'Shoes', amount: 500 }] },
+    },
+    grandTotal: 2950
+  }
+];
+
 export const TransactionProvider = ({ children }) => {
   const { currentUser } = useAuth();
   const [ledgerTransactions, setLedgerTransactions] = useState([]);
@@ -32,11 +51,19 @@ export const TransactionProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Real-time listener subscriptions
+  // Real-time listener subscriptions or Demo User Mode
   useEffect(() => {
     if (!currentUser) {
       setLedgerTransactions([]);
       setDailyExpenseDocs([]);
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
+    if (currentUser.isDemo) {
+      setLedgerTransactions(INITIAL_DEMO_TRANSACTIONS);
+      setDailyExpenseDocs(INITIAL_DEMO_DAILY_DOCS);
       setLoading(false);
       setError(null);
       return;
@@ -96,12 +123,38 @@ export const TransactionProvider = ({ children }) => {
     return extractExpenseEntriesFromDailyDocs(dailyExpenseDocs);
   }, [dailyExpenseDocs]);
 
+  // Helper for demo user daily expense state updates
+  const saveDemoDailyExpenseDoc = (dateStr, categoriesData, grandTotal) => {
+    setDailyExpenseDocs((prev) => {
+      const existingIdx = prev.findIndex((d) => (d.date || d.id) === dateStr);
+      const newDoc = { id: dateStr, date: dateStr, categoriesData, grandTotal };
+      if (existingIdx >= 0) {
+        const copy = [...prev];
+        copy[existingIdx] = newDoc;
+        return copy;
+      }
+      return [newDoc, ...prev];
+    });
+  };
+
   // Create transaction in Firestore (Income / Monthly Ledger)
   const addTransaction = async (newTx) => {
     if (!currentUser) {
       throw new Error('Unauthenticated user. Please log in to add transactions.');
     }
     setError(null);
+
+    if (currentUser.isDemo) {
+      const createdTx = {
+        id: `demo_tx_${Date.now()}`,
+        date: newTx.date || new Date().toISOString().split('T')[0],
+        status: newTx.status || 'completed',
+        ...newTx,
+      };
+      setLedgerTransactions((prev) => [createdTx, ...prev]);
+      return createdTx;
+    }
+
     try {
       const createdTx = await createTransaction(currentUser.uid, newTx);
       return createdTx;
@@ -115,6 +168,14 @@ export const TransactionProvider = ({ children }) => {
   const updateTransactionData = async (id, updatedFields) => {
     if (!currentUser) throw new Error('Unauthenticated user.');
     setError(null);
+
+    if (currentUser.isDemo) {
+      setLedgerTransactions((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, ...updatedFields } : t))
+      );
+      return;
+    }
+
     try {
       await updateTransaction(currentUser.uid, id, updatedFields);
     } catch (err) {
@@ -127,6 +188,12 @@ export const TransactionProvider = ({ children }) => {
   const deleteTransactionData = async (id) => {
     if (!currentUser) throw new Error('Unauthenticated user.');
     setError(null);
+
+    if (currentUser.isDemo) {
+      setLedgerTransactions((prev) => prev.filter((t) => t.id !== id));
+      return;
+    }
+
     try {
       await deleteTransactionFromFirestore(currentUser.uid, id);
     } catch (err) {
@@ -140,6 +207,12 @@ export const TransactionProvider = ({ children }) => {
     if (!currentUser) throw new Error('Unauthenticated user.');
     if (!Array.isArray(ids) || ids.length === 0) return;
     setError(null);
+
+    if (currentUser.isDemo) {
+      setLedgerTransactions((prev) => prev.filter((t) => !ids.includes(t.id)));
+      return;
+    }
+
     try {
       await bulkDeleteTransactionsFromFirestore(currentUser.uid, ids);
     } catch (err) {
@@ -152,6 +225,12 @@ export const TransactionProvider = ({ children }) => {
   const deleteAllTransactionsData = async () => {
     if (!currentUser) throw new Error('Unauthenticated user.');
     setError(null);
+
+    if (currentUser.isDemo) {
+      setLedgerTransactions([]);
+      return;
+    }
+
     try {
       await deleteAllTransactionsFromFirestore(currentUser.uid);
     } catch (err) {
@@ -180,6 +259,7 @@ export const TransactionProvider = ({ children }) => {
         bulkDeleteTransactions: bulkDeleteTransactionsData,
         deleteAllTransactions: deleteAllTransactionsData,
         clearTransactionsState,
+        saveDemoDailyExpenseDoc,
       }}
     >
       {children}

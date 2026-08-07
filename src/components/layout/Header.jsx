@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Calendar as CalendarIcon, Bell, Sun, Moon, ChevronDown, Menu } from 'lucide-react';
+import { Search, Calendar as CalendarIcon, Bell, Sun, Moon, ChevronDown, Menu, Sparkles } from 'lucide-react';
 import { useExpenses } from '../../context/ExpenseContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
@@ -8,7 +8,7 @@ import { UserAvatar } from '../common/UserAvatar';
 export const Header = ({ onOpenMobileSidebar }) => {
   const { searchQuery, setSearchQuery, dateRange, setDateRange } = useExpenses();
   const { theme, toggleTheme } = useTheme();
-  const { displayName, photoURL } = useAuth();
+  const { currentUser, displayName, photoURL } = useAuth();
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
 
   const DATE_OPTIONS = [
@@ -43,6 +43,12 @@ export const Header = ({ onOpenMobileSidebar }) => {
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 tracking-tight">
               Good Morning, {formattedName} <span className="animate-bounce inline-block">👋</span>
+              {currentUser?.isDemo && (
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[11px] font-semibold flex items-center space-x-1">
+                  <Sparkles className="w-3 h-3 text-amber-300" />
+                  <span>Demo Mode</span>
+                </span>
+              )}
             </h1>
             <p className="text-xs sm:text-sm text-slate-400 mt-0.5 font-medium">
               Track your income, manage your expenses and grow your savings.

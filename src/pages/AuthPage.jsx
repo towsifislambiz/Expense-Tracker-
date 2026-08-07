@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, RefreshCw, Eye, EyeOff } from 'lucide-react';
+import { Wallet, Mail, Lock, User, ArrowRight, AlertCircle, CheckCircle2, RefreshCw, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { parseAuthError } from '../utils/firebaseErrors';
 import { BackgroundOrbs } from '../components/layout/BackgroundOrbs';
@@ -23,7 +23,7 @@ export const AuthPage = ({ initialMode = 'login' }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const { loginWithEmail, registerWithEmail, loginWithGoogle, resetPassword, resendVerification } = useAuth();
+  const { loginWithEmail, registerWithEmail, loginWithGoogle, loginAsDemoUser, resetPassword, resendVerification } = useAuth();
 
   const resetFormState = () => {
     setErrorMsg('');
@@ -122,6 +122,19 @@ export const AuthPage = ({ initialMode = 'login' }) => {
     }
   };
 
+  const handleDemoSignIn = async () => {
+    setErrorMsg('');
+    setSuccessMsg('');
+    setIsSubmitting(true);
+    try {
+      await loginAsDemoUser();
+    } catch (err) {
+      setErrorMsg('Failed to log in as demo user.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="relative min-h-screen bg-[#0b0d14] text-slate-100 font-['Plus_Jakarta_Sans',sans-serif] flex items-center justify-center p-4">
       <BackgroundOrbs />
@@ -146,6 +159,23 @@ export const AuthPage = ({ initialMode = 'login' }) => {
             {mode === 'login' && 'Sign in to access your financial dashboard'}
             {mode === 'register' && 'Start tracking expenses and managing budgets'}
             {mode === 'forgot' && 'Enter your registered email for password recovery'}
+          </p>
+        </div>
+
+        {/* Instant Demo Account Button */}
+        <div className="mb-5 pb-5 border-b border-white/10 text-center">
+          <button
+            type="button"
+            onClick={handleDemoSignIn}
+            disabled={isSubmitting}
+            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 hover:from-emerald-500 hover:to-cyan-500 text-white font-bold text-xs flex items-center justify-center space-x-2 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer border border-emerald-400/30 active:scale-[0.98]"
+          >
+            <Sparkles className="w-4 h-4 text-amber-300 fill-amber-300 animate-pulse" />
+            <span>⚡ Try Instant Demo Mode (No Login Needed)</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+          <p className="text-[11px] text-slate-400 mt-2 font-medium">
+            Explore with pre-populated demo data, test adding transactions, daily expenses & budget charts.
           </p>
         </div>
 
